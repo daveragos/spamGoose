@@ -85,7 +85,7 @@ func isValidMessage(msg string) bool {
 		return false
 	}
 
-	urlRegex := `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
+	urlRegex := `((?:https?|ftp|ws|wss):\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)|(?:[a-zA-Z0-9_]+\.)?t\.me\/[a-zA-Z0-9_]+(\/[a-zA-Z0-9_]+)?)`
 	if matched, _ := regexp.MatchString(urlRegex, msg); matched {
 		return false
 	}
