@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -18,6 +19,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create bot: %v", err)
 	}
+
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+		log.Fatal(http.ListenAndServe(":8000", nil))
+	}()
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
