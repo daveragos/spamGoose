@@ -30,15 +30,6 @@ func main() {
 
 	for update := range updates {
 		if isValidMessage(strings.Trim(update.Message.Text, " ")) && !update.Message.IsCommand() {
-			log.Printf("Received message: %s", update.Message.Text)
-			log.Printf("Message from user: %s", update.Message.From.UserName)
-			log.Printf("Message from user ID: %d", update.Message.From.ID)
-			log.Printf("Message from chat ID: %d", update.Message.Chat.ID)
-			log.Printf("Message from chat type: %s", update.Message.Chat.Type)
-			log.Printf("Message from chat title: %s", update.Message.Chat.Title)
-			log.Printf("Message from chat username: %s", update.Message.Chat.UserName)
-			log.Printf("Message from chat first name: %s", update.Message.Chat.FirstName)
-			log.Printf("Message from chat last name: %s", update.Message.Chat.LastName)
 			msg := tgbotapi.NewMessageToChannel(channelID, update.Message.Text+"\n\n#frombot")
 
 			if _, err := bot.Send(msg); err != nil {
