@@ -30,7 +30,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	channelID := "@ragoosedumps"
+	channelID := "@ragoose_dumps"
 
 	processUpdates(bot, updates, channelID)
 }
@@ -85,7 +85,7 @@ func isValidMessage(msg string) bool {
 		return false
 	}
 
-	urlRegex := `(?i)\b((?:https?|://|www\.|)\S+\.\S+)`
+	urlRegex := `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
 	if matched, _ := regexp.MatchString(urlRegex, msg); matched {
 		return false
 	}
