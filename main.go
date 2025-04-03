@@ -38,7 +38,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	channelID := "@ragoose_dumps"
+	channelID := "@debugging_in_prod"
 
 	words, err := loadWordsFromFile("dicts.json")
 	if err != nil {
