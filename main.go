@@ -50,8 +50,15 @@ func processUpdates(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel, chann
 				handleCommand(bot, update.Message)
 				continue
 			}
-			if isValidMessage(strings.TrimSpace(update.Message.Text)) {
-				sendMessageToChannel(bot, channelID, update.Message.Text)
+			messageText := strings.TrimSpace(update.Message.Text)
+			if isValidMessage(messageText) {
+				sendMessageToChannel(bot, channelID, messageText)
+			} else {
+				warningMessage := "Your message contains a link or invalid content and cannot be posted."
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, warningMessage)
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Failed to send warning message: %v", err)
+				}
 			}
 		}
 	}
