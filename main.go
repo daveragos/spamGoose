@@ -1,14 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+var userIDs = make(map[int64]int) // Map to store user-specific IDs
+var userIDsMutex sync.Mutex       // Mutex to handle concurrent access to the map
 
 func main() {
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
@@ -30,7 +38,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	channelID := "@debugging_in_prod"
+	channelID := "@ragoose_dumps"
 
 	processUpdates(bot, updates, channelID)
 }
@@ -52,7 +60,7 @@ func processUpdates(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel, chann
 			}
 			messageText := strings.TrimSpace(update.Message.Text)
 			if isValidMessage(messageText) {
-				sendMessageToChannel(bot, channelID, messageText)
+				sendMessageToChannel(bot, channelID, update.Message.From.ID, messageText)
 			} else {
 				warningMessage := "Your message contains a link or invalid content and cannot be posted."
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, warningMessage)
@@ -77,8 +85,17 @@ Please note that links and files are not supported. for obvious reasons.`
 	}
 }
 
-func sendMessageToChannel(bot *tgbotapi.BotAPI, channelID, text string) {
-	msg := tgbotapi.NewMessageToChannel(channelID, text+"\n\n#frombot")
+func sendMessageToChannel(bot *tgbotapi.BotAPI, channelID string, userID int64, text string) {
+	userIDsMutex.Lock()
+	uniqueID, exists := userIDs[userID]
+	if !exists {
+		rand.Seed(time.Now().UnixNano())
+		uniqueID = rand.Intn(1000000) // Generate a random unique identifier
+		userIDs[userID] = uniqueID
+	}
+	userIDsMutex.Unlock()
+
+	msg := tgbotapi.NewMessageToChannel(channelID, text+"\n\n#frombot #id"+fmt.Sprintf("%06d", uniqueID))
 	if _, err := bot.Send(msg); err != nil {
 		log.Printf("Failed to send message to channel: %v", err)
 	}
@@ -94,6 +111,15 @@ func isValidMessage(msg string) bool {
 
 	urlRegex := `((?:https?|ftp|ws|wss):\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}(\/[a-zA-Z0-9()@:%_\+.~#?&//=]*)?)`
 	if matched, _ := regexp.MatchString(urlRegex, msg); matched {
+		allowedLinkRegex := `https://t\.me/ragoose_dumps/(\\d+)`
+		if linkMatch := regexp.MustCompile(allowedLinkRegex).FindStringSubmatch(msg); linkMatch != nil {
+			if len(linkMatch) > 1 {
+				linkNumber, err := strconv.Atoi(linkMatch[1])
+				if err == nil && linkNumber > 3300 {
+					return true
+				}
+			}
+		}
 		return false
 	}
 	return true
