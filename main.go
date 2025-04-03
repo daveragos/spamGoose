@@ -30,7 +30,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	channelID := "@ragoose_dumps"
+	channelID := "@debugging_in_prod"
 
 	processUpdates(bot, updates, channelID)
 }
