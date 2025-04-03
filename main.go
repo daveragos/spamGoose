@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"net/http"
@@ -15,8 +15,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var userIDs = make(map[int64]int) // Map to store user-specific IDs
-var userIDsMutex sync.Mutex       // Mutex to handle concurrent access to the map
+var userIDs = make(map[int64]string) // Map to store user-specific unique words
+var userIDsMutex sync.Mutex          // Mutex to handle concurrent access to the map
 
 func main() {
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
@@ -40,7 +40,12 @@ func main() {
 
 	channelID := "@ragoose_dumps"
 
-	processUpdates(bot, updates, channelID)
+	words, err := loadWordsFromFile("dicts.json")
+	if err != nil {
+		log.Fatalf("Failed to load words from file: %v", err)
+	}
+
+	processUpdates(bot, updates, channelID, words)
 }
 
 func startHealthCheckServer() {
@@ -51,7 +56,24 @@ func startHealthCheckServer() {
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
 
-func processUpdates(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel, channelID string) {
+func loadWordsFromFile(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var data struct {
+		Words []string `json:"words"`
+	}
+	if err := json.NewDecoder(file).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	return data.Words, nil
+}
+
+func processUpdates(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel, channelID string, words []string) {
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.IsCommand() {
@@ -60,7 +82,7 @@ func processUpdates(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel, chann
 			}
 			messageText := strings.TrimSpace(update.Message.Text)
 			if isValidMessage(messageText) {
-				sendMessageToChannel(bot, channelID, update.Message.From.ID, messageText)
+				sendMessageToChannel(bot, channelID, update.Message.From.ID, messageText, words)
 			} else {
 				warningMessage := "Your message contains a link or invalid content and cannot be posted."
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, warningMessage)
@@ -85,17 +107,31 @@ Please note that links and files are not supported. for obvious reasons.`
 	}
 }
 
-func sendMessageToChannel(bot *tgbotapi.BotAPI, channelID string, userID int64, text string) {
+func generateUniqueWord(userID int64, words []string) string {
+	usedWords := make(map[string]bool)
+	for _, word := range userIDs {
+		usedWords[word] = true
+	}
+
+	rand.Seed(time.Now().UnixNano() + userID)
+	for {
+		word := words[rand.Intn(len(words))]
+		if !usedWords[word] {
+			return word
+		}
+	}
+}
+
+func sendMessageToChannel(bot *tgbotapi.BotAPI, channelID string, userID int64, text string, words []string) {
 	userIDsMutex.Lock()
-	uniqueID, exists := userIDs[userID]
+	uniqueWord, exists := userIDs[userID]
 	if !exists {
-		rand.Seed(time.Now().UnixNano())
-		uniqueID = rand.Intn(1000000) // Generate a random unique identifier
-		userIDs[userID] = uniqueID
+		uniqueWord = generateUniqueWord(userID, words)
+		userIDs[userID] = uniqueWord
 	}
 	userIDsMutex.Unlock()
 
-	msg := tgbotapi.NewMessageToChannel(channelID, text+"\n\n#frombot #id"+fmt.Sprintf("%06d", uniqueID))
+	msg := tgbotapi.NewMessageToChannel(channelID, text+"\n\n#"+uniqueWord+" #frombot")
 	if _, err := bot.Send(msg); err != nil {
 		log.Printf("Failed to send message to channel: %v", err)
 	}
