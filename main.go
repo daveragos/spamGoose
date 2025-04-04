@@ -147,11 +147,11 @@ func isValidMessage(msg string) bool {
 
 	urlRegex := `((?:https?|ftp|ws|wss):\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}(\/[a-zA-Z0-9()@:%_\+.~#?&//=]*)?)`
 	if matched, _ := regexp.MatchString(urlRegex, msg); matched {
-		allowedLinkRegex := `https://t\.me/ragoose_dumps/(\d+)`
+		allowedLinkRegex := `https://t\.me/debugging_in_prod/(\d+)`
 		if linkMatch := regexp.MustCompile(allowedLinkRegex).FindStringSubmatch(msg); linkMatch != nil {
 			if len(linkMatch) > 1 {
 				linkNumber, err := strconv.Atoi(linkMatch[1])
-				if err == nil && linkNumber >= 3300 {
+				if err == nil && linkNumber >= 1 {
 					return true
 				}
 			}
